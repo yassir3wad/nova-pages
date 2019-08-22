@@ -1,0 +1,39 @@
+{
+  "name": "yassir3wad/nova-pages",
+  "description": "A Laravel Nova tool.",
+  "keywords": [
+    "laravel",
+    "nova",
+    "pages"
+  ],
+  "license": "MIT",
+  "require": {
+    "php": ">=7.1.0",
+    "inspheric/nova-indicator-field": "^1.41",
+    "laravel/framework": "5.8.*",
+    "laravel/nova": "^2.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "Yassir3wad\\NovaPages\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Yassir3wad\\NovaPages\\ToolServiceProvider"
+      ]
+    }
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://nova.laravel.com"
+    }
+  ]
+}
