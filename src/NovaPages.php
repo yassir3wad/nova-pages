@@ -4,7 +4,6 @@ namespace Yassir3wad\NovaPages;
 
 use Laravel\Nova\Nova;
 use Laravel\Nova\Tool;
-use Yassir3wad\NovaPages\Resources\Page;
 
 class NovaPages extends Tool
 {
@@ -14,17 +13,13 @@ class NovaPages extends Tool
      * @return void
      */
 
-    public $resource = Page::class;
-
-    private static $templates = [];
-
     public function boot()
     {
         Nova::script('nova-pages', __DIR__ . '/../dist/js/tool.js');
         Nova::style('nova-pages', __DIR__ . '/../dist/css/tool.css');
 
         Nova::resources([
-            $this->resource
+            config('novapages.page_resource')
         ]);
     }
 
@@ -38,21 +33,9 @@ class NovaPages extends Tool
         return view('nova-pages::navigation');
     }
 
-    public function setResource($resource)
-    {
-        $this->resource = $resource;
-        return $this;
-    }
-
-
-    public static function setTemplates($templates): void
-    {
-        self::$templates = $templates;
-    }
-
     public static function getTemplates(): array
     {
-        return array_filter(self::$templates, function ($template) {
+        return array_filter(config('novapages.templates', []), function ($template) {
             return class_exists($template);
         });
     }

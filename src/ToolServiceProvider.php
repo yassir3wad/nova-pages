@@ -16,6 +16,10 @@ class ToolServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'nova-pages');
 
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+
+        $this->publishes([
+            __DIR__.'/../config/novapages.php' => config_path('novapages.php'),
+        ],'nova-pages');
     }
 
     /**

@@ -8,7 +8,7 @@ class Page extends Model
 {
     protected $fillable = ['name', 'template', 'slug', 'status', 'data', 'seo'];
 
-    protected $casts = ['data' => 'array', 'seo'];
+    protected $casts = ['data' => 'array', 'seo' => 'array'];
 
     protected $attributes = [
         'status' => self::STATUS_DRAFT

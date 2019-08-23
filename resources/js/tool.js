@@ -1,3 +1,6 @@
+
+
+
 Nova.booting((Vue, router, store) => {
     router.addRoutes([
         {

@@ -10302,6 +10302,8 @@ module.exports = __webpack_require__(10);
 /* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
+
+
 Nova.booting(function (Vue, router, store) {
     router.addRoutes([{
         name: 'pages',
@@ -10716,12 +10718,64 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
 
 /* harmony default export */ __webpack_exports__["default"] = ({
-    mixins: [__WEBPACK_IMPORTED_MODULE_1_laravel_nova__["Deletable"], __WEBPACK_IMPORTED_MODULE_1_laravel_nova__["Filterable"], __WEBPACK_IMPORTED_MODULE_1_laravel_nova__["Paginatable"], __WEBPACK_IMPORTED_MODULE_1_laravel_nova__["PerPageable"], __WEBPACK_IMPORTED_MODULE_1_laravel_nova__["InteractsWithResourceInformation"], __WEBPACK_IMPORTED_MODULE_1_laravel_nova__["InteractsWithQueryString"]],
+    mixins: [__WEBPACK_IMPORTED_MODULE_1_laravel_nova__["Deletable"], __WEBPACK_IMPORTED_MODULE_1_laravel_nova__["Filterable"], __WEBPACK_IMPORTED_MODULE_1_laravel_nova__["HasCards"], __WEBPACK_IMPORTED_MODULE_1_laravel_nova__["Paginatable"], __WEBPACK_IMPORTED_MODULE_1_laravel_nova__["PerPageable"], __WEBPACK_IMPORTED_MODULE_1_laravel_nova__["InteractsWithResourceInformation"], __WEBPACK_IMPORTED_MODULE_1_laravel_nova__["InteractsWithQueryString"]],
 
     props: {
         field: {
@@ -10736,6 +10790,13 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
         },
         viaResourceId: {
             default: ''
+        },
+        viaRelationship: {
+            default: ''
+        },
+        relationshipType: {
+            type: String,
+            default: ''
         }
     },
 
@@ -10744,7 +10805,7 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
             actionEventsRefresher: null,
             initialLoading: true,
             loading: true,
-            syncing: false,
+
             resourceResponse: null,
             resources: [],
             softDeletes: false,
@@ -10755,9 +10816,11 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
             deleteModalOpen: false,
 
             actions: [],
-            pivotActions: {},
+            pivotActions: null,
 
             search: '',
+            lenses: [],
+
             authorizedToRelate: false,
 
             orderBy: '',
@@ -10777,20 +10840,40 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
                 while (1) {
                     switch (_context.prev = _context.next) {
                         case 0:
+                            if (!Nova.missingResource(this.resourceName)) {
+                                _context.next = 2;
+                                break;
+                            }
+
+                            return _context.abrupt('return', this.$router.push({ name: '404' }));
+
+                        case 2:
+
+                            // Bind the keydown even listener when the router is visited if this
+                            // component is not a relation on a Detail page
+                            if (!this.viaResource && !this.viaResourceId) {
+                                document.addEventListener('keydown', this.handleKeydown);
+                            }
+
                             this.initializeSearchFromQueryString();
                             this.initializePerPageFromQueryString();
                             this.initializeTrashedFromQueryString();
                             this.initializeOrderingFromQueryString();
 
-                            _context.next = 6;
+                            _context.next = 9;
                             return this.initializeFilters();
 
-                        case 6:
-                            _context.next = 8;
+                        case 9:
+                            _context.next = 11;
                             return this.getResources();
 
-                        case 8:
+                        case 11:
+                            _context.next = 13;
+                            return this.getAuthorizationToRelate();
 
+                        case 13:
+
+                            this.getLenses();
                             this.getActions();
 
                             this.initialLoading = false;
@@ -10814,7 +10897,7 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
                                 }, 15 * 1000);
                             }
 
-                        case 12:
+                        case 18:
                         case 'end':
                             return _context.stop();
                     }
@@ -10841,10 +10924,23 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
         if (this.actionEventsRefresher) {
             clearInterval(this.actionEventsRefresher);
         }
+
+        document.removeEventListener('keydown', this.handleKeydown);
     },
 
 
     methods: {
+        /**
+         * Handle the keydown event
+         */
+        handleKeydown: function handleKeydown(e) {
+            // `c`
+            if (this.authorizedToCreate && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && e.keyCode == 67 && e.target.tagName != 'INPUT' && e.target.tagName != 'TEXTAREA') {
+                this.$router.push({ name: 'create', params: { resourceName: this.resourceName } });
+            }
+        },
+
+
         /**
          * Select all of the available resources
          */
@@ -10921,21 +11017,63 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
 
 
         /**
+         * Get the relatable authorization status for the resource.
+         */
+        getAuthorizationToRelate: function getAuthorizationToRelate() {
+            var _this3 = this;
+
+            if (!this.authorizedToCreate && this.relationshipType != 'belongsToMany' && this.relationshipType != 'morphToMany') {
+                return;
+            }
+
+            if (!this.viaResource) {
+                return this.authorizedToRelate = true;
+            }
+
+            return Nova.request().get('/nova-api/' + this.resourceName + '/relate-authorization' + '?viaResource=' + this.viaResource + '&viaResourceId=' + this.viaResourceId + '&viaRelationship=' + this.viaRelationship + '&relationshipType=' + this.relationshipType).then(function (response) {
+                _this3.authorizedToRelate = response.data.authorized;
+            });
+        },
+
+
+        /**
+         * Get the lenses available for the current resource.
+         */
+        getLenses: function getLenses() {
+            var _this4 = this;
+
+            this.lenses = [];
+
+            if (this.viaResource) {
+                return;
+            }
+
+            return Nova.request().get('/nova-api/' + this.resourceName + '/lenses').then(function (response) {
+                _this4.lenses = response.data;
+            });
+        },
+
+
+        /**
          * Get the actions available for the current resource.
          */
         getActions: function getActions() {
-            var _this3 = this;
+            var _this5 = this;
 
             this.actions = [];
+            this.pivotActions = null;
             return Nova.request().get('/nova-api/' + this.resourceName + '/actions', {
                 params: {
                     viaResource: this.viaResource,
-                    viaResourceId: this.viaResourceId
+                    viaResourceId: this.viaResourceId,
+                    viaRelationship: this.viaRelationship,
+                    relationshipType: this.relationshipType
                 }
             }).then(function (response) {
-                _this3.actions = _.filter(response.data.actions, function (action) {
+                _this5.actions = _.filter(response.data.actions, function (action) {
                     return !action.onlyOnDetail;
                 });
+                _this5.pivotActions = response.data.pivotActions;
             });
         },
 
@@ -10944,14 +11082,14 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
          * Execute a search against the resource.
          */
         performSearch: function performSearch(event) {
-            var _this4 = this;
+            var _this6 = this;
 
             this.debouncer(function () {
                 // Only search if we're not tabbing into the field
                 if (event.which != 9) {
-                    var _this4$updateQueryStr;
+                    var _this6$updateQueryStr;
 
-                    _this4.updateQueryString((_this4$updateQueryStr = {}, _defineProperty(_this4$updateQueryStr, _this4.pageParameter, 1), _defineProperty(_this4$updateQueryStr, _this4.searchParameter, _this4.search), _this4$updateQueryStr));
+                    _this6.updateQueryString((_this6$updateQueryStr = {}, _defineProperty(_this6$updateQueryStr, _this6.pageParameter, 1), _defineProperty(_this6$updateQueryStr, _this6.searchParameter, _this6.search), _this6$updateQueryStr));
                 }
             });
         },
@@ -10974,12 +11112,12 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
          * Get the count of all of the matching resources.
          */
         getAllMatchingResourceCount: function getAllMatchingResourceCount() {
-            var _this5 = this;
+            var _this7 = this;
 
             Nova.request().get('/nova-api/' + this.resourceName + '/count', {
                 params: this.resourceRequestQueryString
             }).then(function (response) {
-                _this5.allMatchingResourceCount = response.data.count;
+                _this7.allMatchingResourceCount = response.data.count;
             });
         },
 
@@ -10991,10 +11129,12 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
             var _updateQueryString;
 
             var direction = this.currentOrderByDirection == 'asc' ? 'desc' : 'asc';
-            if (this.currentOrderBy != field.attribute) {
+
+            if (this.currentOrderBy != field.sortableUriKey) {
                 direction = 'asc';
             }
-            this.updateQueryString((_updateQueryString = {}, _defineProperty(_updateQueryString, this.orderByParameter, field.attribute), _defineProperty(_updateQueryString, this.orderByDirectionParameter, direction), _updateQueryString));
+
+            this.updateQueryString((_updateQueryString = {}, _defineProperty(_updateQueryString, this.orderByParameter, field.sortableUriKey), _defineProperty(_updateQueryString, this.orderByDirectionParameter, direction), _updateQueryString));
         },
 
 
@@ -11053,16 +11193,11 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
          * Sync the per page values from the query string.
          */
         initializePerPageFromQueryString: function initializePerPageFromQueryString() {
-            this.perPage = this.$route.query[this.perPageParameter] || 25;
+            this.perPage = this.$route.query[this.perPageParameter] || _.first(this.perPageOptions) || this.perPage;
         }
     },
 
     computed: {
-        resourceIsFull: function resourceIsFull() {
-            return this.viaHasOne && this.resources.length > 0;
-        },
-
-
         /**
          * Determine if the resource has any filters
          */
@@ -11072,10 +11207,27 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
 
 
         /**
+         * Determine if the resource should show any cards
+         */
+        shouldShowCards: function shouldShowCards() {
+            // Don't show cards if this resource is beings shown via a relations
+            return this.cards.length > 0 && this.resourceName == this.$route.params.resourceName;
+        },
+
+
+        /**
+         * Get the endpoint for this resource's metrics.
+         */
+        cardsEndpoint: function cardsEndpoint() {
+            return '/nova-api/' + this.resourceName + '/cards';
+        },
+
+
+        /**
          * Get the name of the search query string variable.
          */
         searchParameter: function searchParameter() {
-            return this.resourceName + '_search';
+            return this.viaRelationship + '_search';
         },
 
 
@@ -11083,7 +11235,7 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
          * Get the name of the order by query string variable.
          */
         orderByParameter: function orderByParameter() {
-            return this.resourceName + '_order';
+            return this.viaRelationship ? this.viaRelationship + '_order' : this.resourceName + '_order';
         },
 
 
@@ -11091,7 +11243,7 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
          * Get the name of the order by direction query string variable.
          */
         orderByDirectionParameter: function orderByDirectionParameter() {
-            return this.resourceName + '_direction';
+            return this.viaRelationship ? this.viaRelationship + '_direction' : this.resourceName + '_direction';
         },
 
 
@@ -11099,7 +11251,7 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
          * Get the name of the trashed constraint query string variable.
          */
         trashedParameter: function trashedParameter() {
-            return this.resourceName + '_trashed';
+            return this.viaRelationship ? this.viaRelationship + '_trashed' : this.resourceName + '_trashed';
         },
 
 
@@ -11107,7 +11259,7 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
          * Get the name of the per page query string variable.
          */
         perPageParameter: function perPageParameter() {
-            return this.resourceName + '_per_page';
+            return this.viaRelationship ? this.viaRelationship + '_per_page' : this.resourceName + '_per_page';
         },
 
 
@@ -11115,7 +11267,7 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
          * Get the name of the page query string variable.
          */
         pageParameter: function pageParameter() {
-            return this.resourceName + '_page';
+            return this.viaRelationship ? this.viaRelationship + '_page' : this.resourceName + '_page';
         },
 
 
@@ -11132,7 +11284,10 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
                 trashed: this.currentTrashed,
                 page: this.currentPage,
                 viaResource: this.viaResource,
-                viaResourceId: this.viaResourceId
+                viaResourceId: this.viaResourceId,
+                viaRelationship: this.viaRelationship,
+                viaResourceRelationship: this.viaResourceRelationship,
+                relationshipType: this.relationshipType
             };
         },
 
@@ -11167,7 +11322,15 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
          * Get all of the actions available to the resource.
          */
         allActions: function allActions() {
-            return this.actions;
+            return this.hasPivotActions ? this.actions.concat(this.pivotActions.actions) : this.actions;
+        },
+
+
+        /**
+         * Determine if the resource has any pivot actions available.
+         */
+        hasPivotActions: function hasPivotActions() {
+            return this.pivotActions && this.pivotActions.actions.length > 0;
         },
 
 
@@ -11176,6 +11339,14 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
          */
         actionsAreAvailable: function actionsAreAvailable() {
             return this.allActions.length > 0;
+        },
+
+
+        /**
+         * Get the name of the pivot model for the resource.
+         */
+        pivotName: function pivotName() {
+            return this.pivotActions ? this.pivotActions.name : '';
         },
 
 
@@ -11212,9 +11383,37 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
 
 
         /**
+         * Determine if the current resource listing is via a many-to-many relationship.
+         */
+        viaManyToMany: function viaManyToMany() {
+            return this.relationshipType == 'belongsToMany' || this.relationshipType == 'morphToMany';
+        },
+
+
+        /**
+         * Determine if the resource / relationship is "full".
+         */
+        resourceIsFull: function resourceIsFull() {
+            return this.viaHasOne && this.resources.length > 0;
+        },
+
+
+        /**
+         * Determine if the current resource listing is via a has-one relationship.
+         */
+        viaHasOne: function viaHasOne() {
+            return this.relationshipType == 'hasOne' || this.relationshipType == 'morphOne';
+        },
+
+
+        /**
          * Get the singular name for the resource
          */
         singularName: function singularName() {
+            if (this.isRelation && this.field) {
+                return Object(__WEBPACK_IMPORTED_MODULE_1_laravel_nova__["Capitalize"])(this.field.singularLabel);
+            }
+
             return Object(__WEBPACK_IMPORTED_MODULE_1_laravel_nova__["Capitalize"])(this.resourceInformation.singularLabel);
         },
 
@@ -11232,6 +11431,14 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
          */
         hasResources: function hasResources() {
             return Boolean(this.resources.length > 0);
+        },
+
+
+        /**
+         * Determine if there any lenses for this resource
+         */
+        hasLenses: function hasLenses() {
+            return Boolean(this.lenses.length > 0);
         },
 
 
@@ -11320,10 +11527,18 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
 
 
         /**
+         * Determine if the index is a relation field
+         */
+        isRelation: function isRelation() {
+            return Boolean(this.viaResourceId && this.viaRelationship);
+        },
+
+
+        /**
          * Return the heading for the view
          */
         headingTitle: function headingTitle() {
-            return this.loading ? '&nbsp;' : this.resourceResponse.label;
+            return this.loading ? '&nbsp;' : this.isRelation && this.field ? this.field.name : this.resourceResponse.label;
         },
 
 
@@ -11370,6 +11585,16 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
          */
         currentPerPage: function currentPerPage() {
             return this.perPage;
+        },
+
+
+        /**
+         * The per-page options configured for this resource.
+         */
+        perPageOptions: function perPageOptions() {
+            if (this.resourceResponse) {
+                return this.resourceResponse.per_page_options;
+            }
         }
     }
 });
@@ -12179,8 +12404,37 @@ var render = function() {
           })
         : _vm._e(),
       _vm._v(" "),
+      _vm.shouldShowCards
+        ? _c(
+            "div",
+            [
+              _vm.smallCards.length > 0
+                ? _c("cards", {
+                    staticClass: "mb-3",
+                    attrs: {
+                      cards: _vm.smallCards,
+                      "resource-name": _vm.resourceName
+                    }
+                  })
+                : _vm._e(),
+              _vm._v(" "),
+              _vm.largeCards.length > 0
+                ? _c("cards", {
+                    attrs: {
+                      cards: _vm.largeCards,
+                      size: "large",
+                      "resource-name": _vm.resourceName
+                    }
+                  })
+                : _vm._e()
+            ],
+            1
+          )
+        : _vm._e(),
+      _vm._v(" "),
       _c("heading", {
         staticClass: "mb-3",
+        attrs: { level: 1 },
         domProps: { innerHTML: _vm._s(_vm.headingTitle) }
       }),
       _vm._v(" "),
@@ -12188,7 +12442,12 @@ var render = function() {
         _vm.resourceInformation.searchable && !_vm.viaHasOne
           ? _c(
               "div",
-              { staticClass: "relative h-9 mb-6 flex-no-shrink" },
+              {
+                staticClass: "relative h-9 flex-no-shrink",
+                class: {
+                  "mb-6": _vm.resourceInformation.searchable && !_vm.viaHasOne
+                }
+              },
               [
                 _c("icon", {
                   staticClass: "absolute search-icon-center ml-3 text-70",
@@ -12234,7 +12493,10 @@ var render = function() {
         _vm._v(" "),
         _c(
           "div",
-          { staticClass: "w-full flex items-center mb-6" },
+          {
+            staticClass: "w-full flex items-center",
+            class: { "mb-6": !_vm.viaResource }
+          },
           [
             !_vm.viaResource
               ? _c("custom-index-toolbar", {
@@ -12250,8 +12512,8 @@ var render = function() {
                 "resource-name": _vm.resourceName,
                 "via-resource": _vm.viaResource,
                 "via-resource-id": _vm.viaResourceId,
-                "via-relationship": "",
-                "relationship-type": "",
+                "via-relationship": _vm.viaRelationship,
+                "relationship-type": _vm.relationshipType,
                 "authorized-to-create":
                   _vm.authorizedToCreate && !_vm.resourceIsFull,
                 "authorized-to-relate": _vm.authorizedToRelate
@@ -12267,7 +12529,16 @@ var render = function() {
         [
           _c(
             "div",
-            { staticClass: "py-3 flex items-center border-b border-50" },
+            {
+              staticClass: "flex items-center",
+              class: {
+                "py-3 border-b border-50":
+                  _vm.shouldShowCheckBoxes ||
+                  _vm.shouldShowDeleteMenu ||
+                  _vm.softDeletes ||
+                  !_vm.viaResource
+              }
+            },
             [
               _c("div", { staticClass: "flex items-center" }, [
                 _vm.shouldShowCheckBoxes
@@ -12419,13 +12690,85 @@ var render = function() {
                             encodedFilters: _vm.encodedFilters,
                             currentTrashed: _vm.currentTrashed,
                             viaResource: _vm.viaResource,
-                            viaResourceId: _vm.viaResourceId
+                            viaResourceId: _vm.viaResourceId,
+                            viaRelationship: _vm.viaRelationship
                           },
                           "selected-resources":
                             _vm.selectedResourcesForActionSelector
                         },
                         on: { actionExecuted: _vm.getResources }
                       })
+                    : _vm._e(),
+                  _vm._v(" "),
+                  _vm.lenses.length > 0
+                    ? _c(
+                        "dropdown",
+                        {
+                          staticClass: "bg-30 hover:bg-40 mr-3 rounded",
+                          scopedSlots: _vm._u(
+                            [
+                              {
+                                key: "default",
+                                fn: function(ref) {
+                                  var toggle = ref.toggle
+                                  return _c(
+                                    "dropdown-trigger",
+                                    {
+                                      staticClass: "px-3",
+                                      attrs: { "handle-click": toggle }
+                                    },
+                                    [
+                                      _c(
+                                        "h3",
+                                        {
+                                          staticClass:
+                                            "flex items-center font-normal text-base text-90 h-9",
+                                          attrs: { slot: "default" },
+                                          slot: "default"
+                                        },
+                                        [
+                                          _vm._v(
+                                            "\n                            " +
+                                              _vm._s(_vm.__("Lens")) +
+                                              "\n                        "
+                                          )
+                                        ]
+                                      )
+                                    ]
+                                  )
+                                }
+                              }
+                            ],
+                            null,
+                            false,
+                            2725943172
+                          )
+                        },
+                        [
+                          _vm._v(" "),
+                          _c(
+                            "dropdown-menu",
+                            {
+                              attrs: {
+                                slot: "menu",
+                                width: "240",
+                                direction: "rtl"
+                              },
+                              slot: "menu"
+                            },
+                            [
+                              _c("lens-selector", {
+                                attrs: {
+                                  "resource-name": _vm.resourceName,
+                                  lenses: _vm.lenses
+                                }
+                              })
+                            ],
+                            1
+                          )
+                        ],
+                        1
+                      )
                     : _vm._e(),
                   _vm._v(" "),
                   _c("filter-menu", {
@@ -12435,7 +12778,8 @@ var render = function() {
                       "via-resource": _vm.viaResource,
                       "via-has-one": _vm.viaHasOne,
                       trashed: _vm.trashed,
-                      "per-page": _vm.perPage
+                      "per-page": _vm.perPage,
+                      "per-page-options": _vm.perPageOptions
                     },
                     on: {
                       "clear-selected-filters": _vm.clearSelectedFilters,
@@ -12500,73 +12844,71 @@ var render = function() {
                       staticClass: "flex justify-center items-center px-6 py-8"
                     },
                     [
-                      _c("div", { staticClass: "text-center" }, [
-                        _c(
-                          "svg",
-                          {
-                            staticClass: "mb-3",
-                            attrs: {
-                              xmlns: "http://www.w3.org/2000/svg",
-                              width: "65",
-                              height: "51",
-                              viewBox: "0 0 65 51"
-                            }
-                          },
-                          [
-                            _c(
-                              "g",
-                              {
+                      _c(
+                        "div",
+                        { staticClass: "text-center" },
+                        [
+                          _c(
+                            "svg",
+                            {
+                              staticClass: "mb-3",
+                              attrs: {
+                                xmlns: "http://www.w3.org/2000/svg",
+                                width: "65",
+                                height: "51",
+                                viewBox: "0 0 65 51"
+                              }
+                            },
+                            [
+                              _c("path", {
                                 attrs: {
-                                  id: "Page-1",
-                                  fill: "none",
-                                  "fill-rule": "evenodd"
+                                  fill: "#A8B9C5",
+                                  d:
+                                    "M56 40h2c.552285 0 1 .447715 1 1s-.447715 1-1 1h-2v2c0 .552285-.447715 1-1 1s-1-.447715-1-1v-2h-2c-.552285 0-1-.447715-1-1s.447715-1 1-1h2v-2c0-.552285.447715-1 1-1s1 .447715 1 1v2zm-5.364125-8H38v8h7.049375c.350333-3.528515 2.534789-6.517471 5.5865-8zm-5.5865 10H6c-3.313708 0-6-2.686292-6-6V6c0-3.313708 2.686292-6 6-6h44c3.313708 0 6 2.686292 6 6v25.049375C61.053323 31.5511 65 35.814652 65 41c0 5.522847-4.477153 10-10 10-5.185348 0-9.4489-3.946677-9.950625-9zM20 30h16v-8H20v8zm0 2v8h16v-8H20zm34-2v-8H38v8h16zM2 30h16v-8H2v8zm0 2v4c0 2.209139 1.790861 4 4 4h12v-8H2zm18-12h16v-8H20v8zm34 0v-8H38v8h16zM2 20h16v-8H2v8zm52-10V6c0-2.209139-1.790861-4-4-4H6C3.790861 2 2 3.790861 2 6v4h52zm1 39c4.418278 0 8-3.581722 8-8s-3.581722-8-8-8-8 3.581722-8 8 3.581722 8 8 8z"
                                 }
-                              },
-                              [
-                                _c(
-                                  "g",
-                                  {
-                                    attrs: {
-                                      id: "05-blank-state",
-                                      fill: "#A8B9C5",
-                                      "fill-rule": "nonzero",
-                                      transform: "translate(-779 -695)"
-                                    }
-                                  },
-                                  [
-                                    _c("path", {
-                                      attrs: {
-                                        id: "Combined-Shape",
-                                        d:
-                                          "M835 735h2c.552285 0 1 .447715 1 1s-.447715 1-1 1h-2v2c0 .552285-.447715 1-1 1s-1-.447715-1-1v-2h-2c-.552285 0-1-.447715-1-1s.447715-1 1-1h2v-2c0-.552285.447715-1 1-1s1 .447715 1 1v2zm-5.364125-8H817v8h7.049375c.350333-3.528515 2.534789-6.517471 5.5865-8zm-5.5865 10H785c-3.313708 0-6-2.686292-6-6v-30c0-3.313708 2.686292-6 6-6h44c3.313708 0 6 2.686292 6 6v25.049375c5.053323.501725 9 4.765277 9 9.950625 0 5.522847-4.477153 10-10 10-5.185348 0-9.4489-3.946677-9.950625-9zM799 725h16v-8h-16v8zm0 2v8h16v-8h-16zm34-2v-8h-16v8h16zm-52 0h16v-8h-16v8zm0 2v4c0 2.209139 1.790861 4 4 4h12v-8h-16zm18-12h16v-8h-16v8zm34 0v-8h-16v8h16zm-52 0h16v-8h-16v8zm52-10v-4c0-2.209139-1.790861-4-4-4h-44c-2.209139 0-4 1.790861-4 4v4h52zm1 39c4.418278 0 8-3.581722 8-8s-3.581722-8-8-8-8 3.581722-8 8 3.581722 8 8 8z"
+                              })
+                            ]
+                          ),
+                          _vm._v(" "),
+                          _c(
+                            "h3",
+                            {
+                              staticClass: "text-base text-80 font-normal mb-6"
+                            },
+                            [
+                              _vm._v(
+                                "\n                        " +
+                                  _vm._s(
+                                    _vm.__(
+                                      "No :resource matched the given criteria.",
+                                      {
+                                        resource: _vm.singularName.toLowerCase()
                                       }
-                                    })
-                                  ]
-                                )
-                              ]
-                            )
-                          ]
-                        ),
-                        _vm._v(" "),
-                        _c(
-                          "h3",
-                          { staticClass: "text-base text-80 font-normal mb-6" },
-                          [
-                            _vm._v(
-                              "\n                        " +
-                                _vm._s(
-                                  _vm.__(
-                                    "No :resource matched the given criteria.",
-                                    {
-                                      resource: _vm.singularName.toLowerCase()
-                                    }
-                                  )
-                                ) +
-                                "\n                    "
-                            )
-                          ]
-                        )
-                      ])
+                                    )
+                                  ) +
+                                  "\n                    "
+                              )
+                            ]
+                          ),
+                          _vm._v(" "),
+                          _c("create-resource-button", {
+                            attrs: {
+                              classes:
+                                "btn btn-sm btn-outline inline-flex items-center",
+                              "singular-name": _vm.singularName,
+                              "resource-name": _vm.resourceName,
+                              "via-resource": _vm.viaResource,
+                              "via-resource-id": _vm.viaResourceId,
+                              "via-relationship": _vm.viaRelationship,
+                              "relationship-type": _vm.relationshipType,
+                              "authorized-to-create":
+                                _vm.authorizedToCreate && !_vm.resourceIsFull,
+                              "authorized-to-relate": _vm.authorizedToRelate
+                            }
+                          })
+                        ],
+                        1
+                      )
                     ]
                   )
                 : _vm._e(),
@@ -12588,6 +12930,8 @@ var render = function() {
                       "should-show-checkboxes": _vm.shouldShowCheckBoxes,
                       "via-resource": _vm.viaResource,
                       "via-resource-id": _vm.viaResourceId,
+                      "via-relationship": _vm.viaRelationship,
+                      "relationship-type": _vm.relationshipType,
                       "update-selection-status": _vm.updateSelectionStatus
                     },
                     on: {

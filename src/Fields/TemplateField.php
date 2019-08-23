@@ -22,10 +22,6 @@ class TemplateField extends Select
 
         $this->options($templates);
 
-        $templates = array_map(function ($template) {
-            return $template::$name;
-        }, $templates);
-
         $this->rules(Rule::in(Arr::only($templates, "value")));
     }
 }
