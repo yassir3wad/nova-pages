@@ -69,11 +69,11 @@ class Page extends Resource
         if ($request instanceof CreateResourceRequest)
             return null;
 
-        $this->template = $this->template || request('template');
+        $this->template = $this->template ? $this->template : request('template');
 
         if (isset($this->template) && $this->template) {
             foreach (NovaPages::getTemplates() as $template) {
-                if ($template::$name == $this->template)  return new $template();
+                if ($template::$name == $this->template) return new $template();
             }
 
             throw new \Exception("template $this->template does not exists");
